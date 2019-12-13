@@ -26,3 +26,12 @@ fn main() {
         println!("Row #{} {:?}", i + 1, rec);
     }
 }
+
+#[test]
+fn test_csv_is_parseable() {
+    let mut found = false;
+    for rec in iter_conh_records() {
+        if rec.boro == 1 { found = true; }
+    }
+    assert_eq!(found, true);
+}
