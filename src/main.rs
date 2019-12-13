@@ -13,24 +13,16 @@ struct CONHRecord {
     lot: u16,
 }
 
-fn load_csv() -> std::io::Result<()> {
-    let file = File::open("./data/Certification_of_No_Harassment__CONH__Pilot_Building_List.csv")?;
-    let mut rdr = csv::Reader::from_reader(file);
-    let mut count = 0;
-    for result in rdr.deserialize() {
-        let record: CONHRecord = result?;
-        println!("Row: {:?}", record);
-        count += 1;
-        if count > 10 {
-            break;
-        }
-    }
-    Ok(())
+fn iter_conh_records() -> impl Iterator<Item = CONHRecord> {
+    let file = File::open("./data/Certification_of_No_Harassment__CONH__Pilot_Building_List.csv").unwrap();
+    let rdr = csv::Reader::from_reader(file);
+    let records = rdr.into_deserialize::<CONHRecord>();
+    records.map(|rec| rec.unwrap())
 }
 
 fn main() {
-    match load_csv() {
-        Ok(()) => println!("Done."),
-        Err(e) => println!("Error! {:?}", e)
+    for (i, rec) in iter_conh_records().enumerate() {
+        if i > 10 { break; }
+        println!("Row #{} {:?}", i + 1, rec);
     }
 }
