@@ -23,10 +23,18 @@ impl CONHRecord {
     }
 }
 
-fn download_wow_info(rec: &CONHRecord) -> String {
-    let url = rec.wow_address_api_url();
-    let result = reqwest::get(url.as_str()).unwrap().text().unwrap();
-    result
+fn get_from_cache_or_download(filename: String, url: String) -> String {
+    let path_str = format!("./data/wow/{}", filename);
+    let path = std::path::Path::new(&path_str);
+    if !path.exists() {
+        let cache_dir = path.parent().unwrap();
+        if !cache_dir.exists() {
+            std::fs::create_dir_all(cache_dir).unwrap();
+        }
+        let result = reqwest::get(&url).unwrap().text().unwrap();
+        std::fs::write(path, result).unwrap();
+    }
+    std::fs::read_to_string(path).unwrap()
 }
 
 fn iter_conh_records() -> impl Iterator<Item = CONHRecord> {
@@ -40,7 +48,8 @@ fn main() {
     for (i, rec) in iter_conh_records().enumerate() {
         if i > 1 { break; }
         println!("Row #{} {}", i + 1, rec.bbl());
-        println!("WOW info: {}", download_wow_info(&rec));
+        let addr_info = get_from_cache_or_download(format!("addr-{}.json", rec.bbl()), rec.wow_address_api_url());
+        println!("WOW info: {}", addr_info);
     }
 }
 
