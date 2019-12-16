@@ -19,9 +19,21 @@ struct CONHRecord {
     lot: u16,
 }
 
+impl CONHRecord {
+    fn as_bbl(&self) -> BBL {
+        BBL::new(self.boro, self.block, self.lot)
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct WOWAddrResult {
     bbl: String,
+}
+
+impl WOWAddrResult {
+    fn as_bbl(&self) -> BBL {
+        self.bbl.parse().unwrap()
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -43,12 +55,6 @@ struct WOWAggResult {
 #[derive(Debug, Deserialize)]
 struct WOWAggResults {
     result: Vec<WOWAggResult>,
-}
-
-impl CONHRecord {
-    fn as_bbl(&self) -> BBL {
-        BBL::new(self.boro, self.block, self.lot)
-    }
 }
 
 fn wow_address_api_url(bbl: &BBL) -> String {
@@ -89,7 +95,7 @@ fn main() {
         println!("  WOW addr info: {} bytes, agg info: {} bytes", addr_info.len(), agg_info.len());
         let addr_results: WOWAddrResults = serde_json::from_str(&addr_info).unwrap();
         for addr in addr_results.addrs.iter() {
-            println!("  BBL in portfolio: {}", addr.bbl);
+            println!("  BBL in portfolio: {}", addr.as_bbl());
         }
         let agg_results: WOWAggResults = serde_json::from_str(&agg_info).unwrap();
         for result in agg_results.result.iter() {
