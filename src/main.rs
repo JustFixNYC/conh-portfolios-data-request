@@ -46,17 +46,17 @@ struct WOWAggResults {
 }
 
 impl CONHRecord {
-    fn bbl(&self) -> BBL {
+    fn as_bbl(&self) -> BBL {
         BBL::new(self.boro, self.block, self.lot)
     }
+}
 
-    fn wow_address_api_url(&self) -> String {
-        format!("{}/address?block={:05}&lot={:04}&borough={}", WOW_API_ROOT, self.block, self.lot, self.boro)
-    }
+fn wow_address_api_url(bbl: &BBL) -> String {
+    format!("{}/address?block={:05}&lot={:04}&borough={}", WOW_API_ROOT, bbl.block, bbl.lot, bbl.boro)
+}
 
-    fn wow_aggregate_api_url(&self) -> String {
-        format!("{}/address/aggregate?bbl={}", WOW_API_ROOT, self.bbl())
-    }
+fn wow_aggregate_api_url(bbl: &BBL) -> String {
+    format!("{}/address/aggregate?bbl={}", WOW_API_ROOT, bbl)
 }
 
 fn get_from_cache_or_download(filename: String, url: String) -> String {
@@ -82,9 +82,10 @@ fn iter_conh_records() -> impl Iterator<Item = CONHRecord> {
 
 fn main() {
     for (i, rec) in iter_conh_records().enumerate() {
-        println!("Row #{} {}", i + 1, rec.bbl());
-        let addr_info = get_from_cache_or_download(format!("{}-addr.json", rec.bbl()), rec.wow_address_api_url());
-        let agg_info = get_from_cache_or_download(format!("{}-agg.json", rec.bbl()), rec.wow_aggregate_api_url());
+        let bbl = rec.as_bbl();
+        println!("Row #{} {}", i + 1, bbl);
+        let addr_info = get_from_cache_or_download(format!("{}-addr.json", bbl), wow_address_api_url(&bbl));
+        let agg_info = get_from_cache_or_download(format!("{}-agg.json", bbl), wow_aggregate_api_url(&bbl));
         println!("  WOW addr info: {} bytes, agg info: {} bytes", addr_info.len(), agg_info.len());
         let addr_results: WOWAddrResults = serde_json::from_str(&addr_info).unwrap();
         for addr in addr_results.addrs.iter() {
@@ -109,17 +110,15 @@ fn test_csv_is_parseable() {
 #[test]
 fn test_bbl_works() {
     let rec = CONHRecord { boro: 1, block: 5099, lot: 39 };
-    assert_eq!(rec.bbl().to_string(), "1050990039");
+    assert_eq!(rec.as_bbl().to_string(), "1050990039");
 }
 
 #[test]
 fn test_wow_address_api_url_works() {
-    let rec = CONHRecord { boro: 1, block: 5099, lot: 39 };
-    assert_eq!(rec.wow_address_api_url(), "https://whoownswhat.justfix.nyc/api/address?block=05099&lot=0039&borough=1");
+    assert_eq!(wow_address_api_url(&BBL::new(1, 5099, 39)), "https://whoownswhat.justfix.nyc/api/address?block=05099&lot=0039&borough=1");
 }
 
 #[test]
 fn test_wow_aggregate_api_url_works() {
-    let rec = CONHRecord { boro: 1, block: 5099, lot: 39 };
-    assert_eq!(rec.wow_aggregate_api_url(), "https://whoownswhat.justfix.nyc/api/address/aggregate?bbl=1050990039");
+    assert_eq!(wow_aggregate_api_url(&BBL::new(1, 5099, 39)), "https://whoownswhat.justfix.nyc/api/address/aggregate?bbl=1050990039");
 }

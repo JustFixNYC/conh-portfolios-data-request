@@ -2,9 +2,9 @@ use std::str::FromStr;
 
 #[derive(Debug, PartialEq)]
 pub struct BBL {
-    boro: u8,
-    block: u32,
-    lot: u16,
+    pub boro: u8,
+    pub block: u32,
+    pub lot: u16,
 }
 
 #[derive(Debug, PartialEq)]
