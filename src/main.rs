@@ -93,6 +93,7 @@ fn iter_conh_records() -> impl Iterator<Item = CONHRecord> {
 fn main() {
     let mut conh_bbls = HashSet::new();
     let mut portfolios = PortfolioMap::new();
+    let mut row_count = 0;
     for (i, rec) in iter_conh_records().enumerate() {
         let bbl = rec.as_bbl();
         let row_num = i + 1;
@@ -112,8 +113,12 @@ fn main() {
         for _result in agg_results.result.iter() {
             // println!("  Units in portfolio: {:?}", &result.units);
         }
+        row_count += 1;
     }
+    println!("Found {} unique CONH BBLs over {} rows.", conh_bbls.len(), row_count);
     println!("Portfolios span a total of {} unique BBLs.", portfolios.num_bbls());
+    let p = portfolios.get_portfolios();
+    println!("Found {} disjoint portfolios.", p.len());
 }
 
 #[test]
