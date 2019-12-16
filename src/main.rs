@@ -113,6 +113,7 @@ fn main() {
             // println!("  Units in portfolio: {:?}", &result.units);
         }
     }
+    println!("Portfolios span a total of {} unique BBLs.", portfolios.num_bbls());
 }
 
 #[test]

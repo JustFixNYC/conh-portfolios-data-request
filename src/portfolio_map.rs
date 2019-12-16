@@ -21,4 +21,8 @@ impl PortfolioMap {
             self.associate_one_way(b, a);
         }
     }
+
+    pub fn num_bbls(&self) -> usize {
+        self.bbls.len()
+    }
 }
