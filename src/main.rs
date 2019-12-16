@@ -1,6 +1,8 @@
 use std::fs::File;
 use serde::Deserialize;
 
+const WOW_API_ROOT: &'static str = "https://whoownswhat.justfix.nyc/api";
+
 #[derive(Debug, Deserialize)]
 struct CONHRecord {
     #[serde(rename = "Borocode")]
@@ -19,7 +21,11 @@ impl CONHRecord {
     }
 
     fn wow_address_api_url(&self) -> String {
-        format!("https://whoownswhat.justfix.nyc/api/address?block={:05}&lot={:04}&borough={}", self.block, self.lot, self.boro)
+        format!("{}/address?block={:05}&lot={:04}&borough={}", WOW_API_ROOT, self.block, self.lot, self.boro)
+    }
+
+    fn wow_aggregate_api_url(&self) -> String {
+        format!("{}/address/aggregate?bbl={}", WOW_API_ROOT, self.bbl())
     }
 }
 
@@ -49,7 +55,8 @@ fn main() {
         if i > 1 { break; }
         println!("Row #{} {}", i + 1, rec.bbl());
         let addr_info = get_from_cache_or_download(format!("addr-{}.json", rec.bbl()), rec.wow_address_api_url());
-        println!("WOW info: {}", addr_info);
+        let agg_info = get_from_cache_or_download(format!("agg-{}.json", rec.bbl()), rec.wow_aggregate_api_url());
+        println!("  WOW addr info: {} bytes, agg info: {} bytes", addr_info.len(), agg_info.len());
     }
 }
 
@@ -72,4 +79,10 @@ fn test_bbl_works() {
 fn test_wow_address_api_url_works() {
     let rec = CONHRecord { boro: 1, block: 5099, lot: 39 };
     assert_eq!(rec.wow_address_api_url(), "https://whoownswhat.justfix.nyc/api/address?block=05099&lot=0039&borough=1");
+}
+
+#[test]
+fn test_wow_aggregate_api_url_works() {
+    let rec = CONHRecord { boro: 1, block: 5099, lot: 39 };
+    assert_eq!(rec.wow_aggregate_api_url(), "https://whoownswhat.justfix.nyc/api/address/aggregate?bbl=1050990039");
 }
