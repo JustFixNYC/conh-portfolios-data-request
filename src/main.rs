@@ -1,5 +1,5 @@
 use std::fs::File;
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 
 const WOW_API_ROOT: &'static str = "https://whoownswhat.justfix.nyc/api";
 
@@ -15,6 +15,40 @@ struct CONHRecord {
     lot: u16,
 }
 
+#[derive(Debug, Deserialize)]
+struct WOWAddrResult {
+    bbl: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct WOWAddrResults {
+    addrs: Vec<WOWAddrResult>,
+}
+
+#[derive(Debug, Deserialize)]
+struct WOWAggResult {
+    #[serde(deserialize_with = "from_str")]
+    bldgs: u32,
+
+    #[serde(deserialize_with = "from_str")]
+    units: u32,
+
+    topowners: Vec<String>,
+    topcorp: String,
+    topbusinessaddr: String,
+
+    #[serde(deserialize_with = "from_str")]
+    totalopenviolations: u32,
+
+    #[serde(deserialize_with = "from_str")]
+    totalviolations: u32,
+}
+
+#[derive(Debug, Deserialize)]
+struct WOWAggResults {
+    result: Vec<WOWAggResult>,
+}
+
 impl CONHRecord {
     fn bbl(&self) -> String {
         format!("{}{:05}{:04}", self.boro, self.block, self.lot)
@@ -27,6 +61,16 @@ impl CONHRecord {
     fn wow_aggregate_api_url(&self) -> String {
         format!("{}/address/aggregate?bbl={}", WOW_API_ROOT, self.bbl())
     }
+}
+
+// https://github.com/serde-rs/json/issues/317#issuecomment-300251188
+fn from_str<'de, T, D>(deserializer: D) -> Result<T, D::Error>
+  where T: std::str::FromStr,
+        T::Err: std::fmt::Display,
+        D: Deserializer<'de>
+{
+    let s = String::deserialize(deserializer)?;
+    T::from_str(&s).map_err(serde::de::Error::custom)
 }
 
 fn get_from_cache_or_download(filename: String, url: String) -> String {
@@ -54,9 +98,17 @@ fn main() {
     for (i, rec) in iter_conh_records().enumerate() {
         if i > 1 { break; }
         println!("Row #{} {}", i + 1, rec.bbl());
-        let addr_info = get_from_cache_or_download(format!("addr-{}.json", rec.bbl()), rec.wow_address_api_url());
-        let agg_info = get_from_cache_or_download(format!("agg-{}.json", rec.bbl()), rec.wow_aggregate_api_url());
+        let addr_info = get_from_cache_or_download(format!("{}-addr.json", rec.bbl()), rec.wow_address_api_url());
+        let agg_info = get_from_cache_or_download(format!("{}-agg.json", rec.bbl()), rec.wow_aggregate_api_url());
         println!("  WOW addr info: {} bytes, agg info: {} bytes", addr_info.len(), agg_info.len());
+        let addr_results: WOWAddrResults = serde_json::from_str(&addr_info).unwrap();
+        for addr in addr_results.addrs.iter() {
+            println!("  BBL in portfolio: {}", addr.bbl);
+        }
+        let agg_results: WOWAggResults = serde_json::from_str(&agg_info).unwrap();
+        for result in agg_results.result.iter() {
+            println!("  Units in portfolio: {}", result.units);
+        }
     }
 }
 
