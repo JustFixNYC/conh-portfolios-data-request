@@ -1,6 +1,10 @@
 use std::fs::File;
 use serde::{Deserialize};
 
+mod bbl;
+
+use bbl::BBL;
+
 const WOW_API_ROOT: &'static str = "https://whoownswhat.justfix.nyc/api";
 
 #[derive(Debug, Deserialize)]
@@ -42,8 +46,8 @@ struct WOWAggResults {
 }
 
 impl CONHRecord {
-    fn bbl(&self) -> String {
-        format!("{}{:05}{:04}", self.boro, self.block, self.lot)
+    fn bbl(&self) -> BBL {
+        BBL::new(self.boro, self.block, self.lot)
     }
 
     fn wow_address_api_url(&self) -> String {
@@ -105,7 +109,7 @@ fn test_csv_is_parseable() {
 #[test]
 fn test_bbl_works() {
     let rec = CONHRecord { boro: 1, block: 5099, lot: 39 };
-    assert_eq!(rec.bbl(), "1050990039");
+    assert_eq!(rec.bbl().to_string(), "1050990039");
 }
 
 #[test]
