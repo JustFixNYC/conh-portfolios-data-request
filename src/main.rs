@@ -1,5 +1,5 @@
 use std::fs::File;
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize};
 
 const WOW_API_ROOT: &'static str = "https://whoownswhat.justfix.nyc/api";
 
@@ -27,21 +27,13 @@ struct WOWAddrResults {
 
 #[derive(Debug, Deserialize)]
 struct WOWAggResult {
-    #[serde(deserialize_with = "from_str")]
-    bldgs: u32,
-
-    #[serde(deserialize_with = "from_str")]
-    units: u32,
-
-    topowners: Vec<String>,
-    topcorp: String,
-    topbusinessaddr: String,
-
-    #[serde(deserialize_with = "from_str")]
-    totalopenviolations: u32,
-
-    #[serde(deserialize_with = "from_str")]
-    totalviolations: u32,
+    bldgs: String,
+    units: Option<String>,
+    topowners: Option<Vec<String>>,
+    topcorp: Option<String>,
+    topbusinessaddr: Option<String>,
+    totalopenviolations: Option<String>,
+    totalviolations: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -61,16 +53,6 @@ impl CONHRecord {
     fn wow_aggregate_api_url(&self) -> String {
         format!("{}/address/aggregate?bbl={}", WOW_API_ROOT, self.bbl())
     }
-}
-
-// https://github.com/serde-rs/json/issues/317#issuecomment-300251188
-fn from_str<'de, T, D>(deserializer: D) -> Result<T, D::Error>
-  where T: std::str::FromStr,
-        T::Err: std::fmt::Display,
-        D: Deserializer<'de>
-{
-    let s = String::deserialize(deserializer)?;
-    T::from_str(&s).map_err(serde::de::Error::custom)
 }
 
 fn get_from_cache_or_download(filename: String, url: String) -> String {
@@ -96,7 +78,6 @@ fn iter_conh_records() -> impl Iterator<Item = CONHRecord> {
 
 fn main() {
     for (i, rec) in iter_conh_records().enumerate() {
-        if i > 1 { break; }
         println!("Row #{} {}", i + 1, rec.bbl());
         let addr_info = get_from_cache_or_download(format!("{}-addr.json", rec.bbl()), rec.wow_address_api_url());
         let agg_info = get_from_cache_or_download(format!("{}-agg.json", rec.bbl()), rec.wow_aggregate_api_url());
@@ -107,7 +88,7 @@ fn main() {
         }
         let agg_results: WOWAggResults = serde_json::from_str(&agg_info).unwrap();
         for result in agg_results.result.iter() {
-            println!("  Units in portfolio: {}", result.units);
+            println!("  Units in portfolio: {:?}", &result.units);
         }
     }
 }
