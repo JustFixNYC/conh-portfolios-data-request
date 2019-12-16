@@ -1,4 +1,3 @@
-use std::num::ParseIntError;
 use std::str::FromStr;
 
 #[derive(Debug, PartialEq)]
@@ -10,7 +9,7 @@ pub struct BBL {
 
 #[derive(Debug, PartialEq)]
 pub enum BBLParseError {
-    ParseInt(ParseIntError),
+    InvalidInt,
     InvalidLength,
 }
 
@@ -33,19 +32,9 @@ impl FromStr for BBL {
         if s.len() != 10 {
             Err(BBLParseError::InvalidLength)
         } else {
-            match u8::from_str(&s[0..1]) {
-                Err(e) => Err(BBLParseError::ParseInt(e)),
-                Ok(boro) => {
-                    match u32::from_str(&s[1..6]) {
-                        Err(e) => Err(BBLParseError::ParseInt(e)),
-                        Ok(block) => {
-                            match u16::from_str(&s[6..10]) {
-                                Err(e) => Err(BBLParseError::ParseInt(e)),
-                                Ok(lot) => Ok(BBL::new(boro, block, lot)),
-                            }
-                        }
-                    }
-                }
+            match (u8::from_str(&s[0..1]), u32::from_str(&s[1..6]), u16::from_str(&s[6..10])) {
+                (Ok(boro), Ok(block), Ok(lot)) => Ok(BBL::new(boro, block, lot)),
+                _ => Err(BBLParseError::InvalidInt),
             }
         }
     }
@@ -63,9 +52,10 @@ fn test_from_str_raises_invalid_length_err() {
 
 #[test]
 fn test_from_str_raises_parse_int_err() {
-    assert!(BBL::from_str("a234567890").is_err());
-    assert!(BBL::from_str("1a34567890").is_err());
-    assert!(BBL::from_str("123456789a").is_err());
+    let err = Err(BBLParseError::InvalidInt);
+    assert_eq!(BBL::from_str("a234567890"), err);
+    assert_eq!(BBL::from_str("1a34567890"), err);
+    assert_eq!(BBL::from_str("123456789a"), err);
 }
 
 #[test]
