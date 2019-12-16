@@ -26,31 +26,20 @@ impl PortfolioMap {
         self.bbls.len()
     }
 
-    fn get_portfolio(&self, root_bbl: BBL) -> HashSet<BBL> {
-        let mut portfolio: HashSet<BBL> = HashSet::new();
-        let mut bbls_to_visit = Vec::new();
-        bbls_to_visit.insert(0, root_bbl);
-        loop {
-            match bbls_to_visit.pop() {
-                Some(bbl) => {
-                    if !portfolio.insert(bbl) {
-                        continue;
-                    }
-                    match self.bbls.get(&bbl) {
-                        Some(assoc_bbls) => {
-                            for assoc_bbl in assoc_bbls.iter() {
-                                if !portfolio.contains(assoc_bbl) {
-                                    bbls_to_visit.insert(0, *assoc_bbl);
-                                }
-                            }
-                        },
-                        None => panic!("Assertion failure, no information about BBL {}!", bbl),
-                    }
-                },
-                None => break,
-            }
+    fn populate_portfolio(&self, bbl: BBL, portfolio: &mut HashSet<BBL>) {
+        if !portfolio.insert(bbl) {
+            panic!("Assertion failure, did not expect BBL {} to be in portfolio!", bbl);
         }
-        portfolio
+        match self.bbls.get(&bbl) {
+            Some(assoc_bbls) => {
+                for assoc_bbl in assoc_bbls.iter() {
+                    if !portfolio.contains(assoc_bbl) {
+                        self.populate_portfolio(*assoc_bbl, portfolio);
+                    }
+                }
+            },
+            None => panic!("Assertion failure, no information about BBL {}!", bbl),
+        }
     }
 
     pub fn get_portfolios(&self) -> Vec<HashSet<BBL>> {
@@ -61,7 +50,8 @@ impl PortfolioMap {
         loop {
             match unvisited_bbls.iter().next() {
                 Some(bbl) => {
-                    let portfolio = self.get_portfolio(*bbl);
+                    let mut portfolio = HashSet::new();
+                    self.populate_portfolio(*bbl, &mut portfolio);
                     for portfolio_bbl in portfolio.iter() {
                         unvisited_bbls.remove(portfolio_bbl);
                     }
