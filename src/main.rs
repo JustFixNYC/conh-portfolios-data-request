@@ -1,9 +1,12 @@
 use std::fs::File;
+use std::collections::HashSet;
 use serde::{Deserialize};
 
 mod bbl;
+mod portfolio_map;
 
 use bbl::BBL;
+use portfolio_map::PortfolioMap;
 
 const WOW_API_ROOT: &'static str = "https://whoownswhat.justfix.nyc/api";
 
@@ -73,6 +76,7 @@ fn get_from_cache_or_download(filename: String, url: String) -> String {
         if !cache_dir.exists() {
             std::fs::create_dir_all(cache_dir).unwrap();
         }
+        println!("Downloading {}.", url);
         let result = reqwest::get(&url).unwrap().text().unwrap();
         std::fs::write(path, result).unwrap();
     }
@@ -87,19 +91,26 @@ fn iter_conh_records() -> impl Iterator<Item = CONHRecord> {
 }
 
 fn main() {
+    let mut conh_bbls = HashSet::new();
+    let mut portfolios = PortfolioMap::new();
     for (i, rec) in iter_conh_records().enumerate() {
         let bbl = rec.as_bbl();
-        println!("Row #{} {}", i + 1, bbl);
+        let row_num = i + 1;
+        if row_num % 50 == 0 || row_num == 1 {
+            println!("Processing row #{}.", row_num);
+        }
+        if !conh_bbls.insert(bbl) {
+            println!("Warning: BBL {} exists at least twice in CONH candidates!", bbl);
+        }
         let addr_info = get_from_cache_or_download(format!("{}-addr.json", bbl), wow_address_api_url(&bbl));
         let agg_info = get_from_cache_or_download(format!("{}-agg.json", bbl), wow_aggregate_api_url(&bbl));
-        println!("  WOW addr info: {} bytes, agg info: {} bytes", addr_info.len(), agg_info.len());
         let addr_results: WOWAddrResults = serde_json::from_str(&addr_info).unwrap();
         for addr in addr_results.addrs.iter() {
-            println!("  BBL in portfolio: {}", addr.as_bbl());
+            portfolios.associate(&bbl, &addr.as_bbl());
         }
         let agg_results: WOWAggResults = serde_json::from_str(&agg_info).unwrap();
-        for result in agg_results.result.iter() {
-            println!("  Units in portfolio: {:?}", &result.units);
+        for _result in agg_results.result.iter() {
+            // println!("  Units in portfolio: {:?}", &result.units);
         }
     }
 }
