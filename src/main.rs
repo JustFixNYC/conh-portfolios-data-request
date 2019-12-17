@@ -1,8 +1,8 @@
 use std::fs::File;
 use std::io::BufReader;
 use std::iter::FromIterator;
-use std::collections::HashSet;
-use serde::{Deserialize};
+use std::collections::{HashSet, HashMap};
+use serde::{Deserialize, Serialize};
 
 mod bbl;
 mod portfolio_map;
@@ -11,6 +11,40 @@ use bbl::BBL;
 use portfolio_map::PortfolioBuilder;
 
 const WOW_API_ROOT: &'static str = "https://whoownswhat.justfix.nyc/api";
+const OUTPUT_FILENAME: &'static str = "./data/output.csv";
+
+#[derive(Debug, Serialize)]
+struct OutputRecord {
+    #[serde(rename = "Building ID")]
+    building_id: u32,
+
+    #[serde(rename = "BIN")]
+    bin: u32,
+
+    #[serde(rename = "Street Address")]
+    street_address: String,
+
+    #[serde(rename = "Borocode")]
+    boro: u8,
+
+    #[serde(rename = "Block")]
+    block: u32,
+
+    #[serde(rename = "Lot")]
+    lot: u16,
+
+    #[serde(rename = "BBL")]
+    bbl: String,
+
+//    #[serde(rename = "Top owners (from WoW)")]
+//    topowners: Option<Vec<String>>,
+
+    #[serde(rename = "Top corporation name (from WoW)")]
+    topcorp: Option<String>,
+
+    #[serde(rename = "Top business address (from WoW)")]
+    topbusinessaddr: Option<String>,
+}
 
 #[derive(Debug, Deserialize)]
 struct CONHRecord {
@@ -116,6 +150,8 @@ fn main() {
     let mut conh_bbls = HashSet::new();
     let mut portfolios = PortfolioBuilder::new();
     let conh_records = Vec::from_iter(iter_conh_records());
+    let mut agg_results = HashMap::new();
+    let mut addr_results = HashMap::new();
     for rec in conh_records.iter() {
         let bbl = rec.as_bbl();
         if !conh_bbls.insert(bbl) {
@@ -129,16 +165,38 @@ fn main() {
             println!("Processing row #{}.", row_num);
         }
 
-        get_agg_results(bbl);
+        agg_results.insert(bbl, get_agg_results(bbl));
+        let addr = get_addr_results(bbl);
 
-        for addr in get_addr_results(bbl).addrs.iter() {
+        for addr in addr.addrs.iter() {
             portfolios.associate(&bbl, &addr.as_bbl());
         }
+
+        addr_results.insert(bbl, addr);
     }
     println!("Found {} unique CONH BBLs over {} rows.", conh_bbls.len(), conh_records.len());
     println!("Portfolios span a total of {} unique BBLs.", portfolios.num_bbls());
     let pmap = portfolios.get_portfolios();
     println!("Found {} disjoint portfolios.", pmap.portfolios.len());
+    let mut writer = csv::Writer::from_path(std::path::Path::new(OUTPUT_FILENAME)).unwrap();
+    println!("Writing {}...", OUTPUT_FILENAME);
+    for rec in conh_records.iter() {
+        let bbl = rec.as_bbl();
+        let agg = agg_results.get(&bbl).unwrap();
+        writer.serialize(OutputRecord {
+            building_id: rec.building_id,
+            bin: rec.bin,
+            street_address: rec.street_address.clone(),
+            boro: rec.boro,
+            block: rec.block,
+            lot: rec.lot,
+            bbl: bbl.to_string(),
+            topcorp: agg.result[0].topcorp.clone(),
+            topbusinessaddr: agg.result[0].topbusinessaddr.clone()
+        }).unwrap();
+        writer.flush().unwrap();
+    }
+    println!("Done.");
 }
 
 #[test]
