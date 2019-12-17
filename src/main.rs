@@ -1,4 +1,5 @@
 use std::fs::File;
+use std::io::BufReader;
 use std::collections::HashSet;
 use serde::{Deserialize};
 
@@ -85,7 +86,8 @@ fn get_from_cache_or_download(filename: String, url: String) -> String {
 
 fn iter_conh_records() -> impl Iterator<Item = CONHRecord> {
     let file = File::open("./data/Certification_of_No_Harassment__CONH__Pilot_Building_List.csv").unwrap();
-    let rdr = csv::Reader::from_reader(file);
+    let buf_reader = BufReader::new(file);
+    let rdr = csv::Reader::from_reader(buf_reader);
     let records = rdr.into_deserialize::<CONHRecord>();
     records.map(|rec| rec.unwrap())
 }
