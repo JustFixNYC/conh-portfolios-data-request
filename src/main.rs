@@ -92,6 +92,16 @@ fn iter_conh_records() -> impl Iterator<Item = CONHRecord> {
     records.map(|rec| rec.unwrap())
 }
 
+fn get_addr_results(bbl: BBL) -> WOWAddrResults {
+    let addr_info = get_from_cache_or_download(format!("{}-addr.json", bbl), wow_address_api_url(&bbl));
+    serde_json::from_str(&addr_info).unwrap()
+}
+
+fn get_agg_results(bbl: BBL) -> WOWAggResults {
+    let agg_info = get_from_cache_or_download(format!("{}-agg.json", bbl), wow_aggregate_api_url(&bbl));
+    serde_json::from_str(&agg_info).unwrap()
+}
+
 fn main() {
     let mut conh_bbls = HashSet::new();
     let mut portfolios = PortfolioBuilder::new();
@@ -105,16 +115,14 @@ fn main() {
         if !conh_bbls.insert(bbl) {
             println!("Warning: BBL {} exists at least twice in CONH candidates!", bbl);
         }
-        let addr_info = get_from_cache_or_download(format!("{}-addr.json", bbl), wow_address_api_url(&bbl));
-        let agg_info = get_from_cache_or_download(format!("{}-agg.json", bbl), wow_aggregate_api_url(&bbl));
-        let addr_results: WOWAddrResults = serde_json::from_str(&addr_info).unwrap();
+
+        let addr_results = get_addr_results(bbl);
+        let _agg_results = get_agg_results(bbl);
+
         for addr in addr_results.addrs.iter() {
             portfolios.associate(&bbl, &addr.as_bbl());
         }
-        let agg_results: WOWAggResults = serde_json::from_str(&agg_info).unwrap();
-        for _result in agg_results.result.iter() {
-            // println!("  Units in portfolio: {:?}", &result.units);
-        }
+
         row_count += 1;
     }
     println!("Found {} unique CONH BBLs over {} rows.", conh_bbls.len(), row_count);
