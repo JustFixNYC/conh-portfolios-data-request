@@ -36,6 +36,12 @@ struct OutputRecord {
     #[serde(rename = "BBL")]
     bbl: String,
 
+    #[serde(rename = "Number of buildings in portfolio (from WoW)")]
+    bldgs: String,
+
+    #[serde(rename = "Number of units in portfolio (from WoW)")]
+    units: Option<String>,
+
     #[serde(rename = "Top owners (from WoW)")]
     topowners: String,
 
@@ -191,6 +197,8 @@ fn main() {
             block: rec.block,
             lot: rec.lot,
             bbl: bbl.to_string(),
+            bldgs: agg.result[0].bldgs.clone(),
+            units: agg.result[0].units.clone(),
             topowners: agg.result[0].topowners.as_ref().map_or(String::from(""), |v| v.join(", ")),
             topcorp: agg.result[0].topcorp.clone(),
             topbusinessaddr: agg.result[0].topbusinessaddr.clone()
