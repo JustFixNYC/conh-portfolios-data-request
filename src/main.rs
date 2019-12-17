@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::BufReader;
+use std::iter::FromIterator;
 use std::collections::HashSet;
 use serde::{Deserialize};
 
@@ -13,6 +14,15 @@ const WOW_API_ROOT: &'static str = "https://whoownswhat.justfix.nyc/api";
 
 #[derive(Debug, Deserialize)]
 struct CONHRecord {
+    #[serde(rename = "Building ID")]
+    building_id: u32,
+
+    #[serde(rename = "BIN")]
+    bin: u32,
+
+    #[serde(rename = "Street Address")]
+    street_address: String,
+
     #[serde(rename = "Borocode")]
     boro: u8,
 
@@ -105,27 +115,27 @@ fn get_agg_results(bbl: BBL) -> WOWAggResults {
 fn main() {
     let mut conh_bbls = HashSet::new();
     let mut portfolios = PortfolioBuilder::new();
-    let mut row_count = 0;
-    for (i, rec) in iter_conh_records().enumerate() {
+    let conh_records = Vec::from_iter(iter_conh_records());
+    for rec in conh_records.iter() {
+        let bbl = rec.as_bbl();
+        if !conh_bbls.insert(bbl) {
+            println!("Warning: BBL {} exists at least twice in CONH candidates!", bbl);
+        }
+    }
+    for (i, rec) in conh_records.iter().enumerate() {
         let bbl = rec.as_bbl();
         let row_num = i + 1;
         if row_num % 50 == 0 || row_num == 1 {
             println!("Processing row #{}.", row_num);
         }
-        if !conh_bbls.insert(bbl) {
-            println!("Warning: BBL {} exists at least twice in CONH candidates!", bbl);
-        }
 
-        let addr_results = get_addr_results(bbl);
-        let _agg_results = get_agg_results(bbl);
+        get_agg_results(bbl);
 
-        for addr in addr_results.addrs.iter() {
+        for addr in get_addr_results(bbl).addrs.iter() {
             portfolios.associate(&bbl, &addr.as_bbl());
         }
-
-        row_count += 1;
     }
-    println!("Found {} unique CONH BBLs over {} rows.", conh_bbls.len(), row_count);
+    println!("Found {} unique CONH BBLs over {} rows.", conh_bbls.len(), conh_records.len());
     println!("Portfolios span a total of {} unique BBLs.", portfolios.num_bbls());
     let pmap = portfolios.get_portfolios();
     println!("Found {} disjoint portfolios.", pmap.portfolios.len());
