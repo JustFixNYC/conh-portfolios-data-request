@@ -151,12 +151,6 @@ fn test_csv_is_parseable() {
 }
 
 #[test]
-fn test_bbl_works() {
-    let rec = CONHRecord { boro: 1, block: 5099, lot: 39 };
-    assert_eq!(rec.as_bbl().to_string(), "1050990039");
-}
-
-#[test]
 fn test_wow_address_api_url_works() {
     assert_eq!(wow_address_api_url(&BBL::new(1, 5099, 39)), "https://whoownswhat.justfix.nyc/api/address?block=05099&lot=0039&borough=1");
 }
