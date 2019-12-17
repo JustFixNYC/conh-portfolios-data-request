@@ -15,9 +15,16 @@ impl PortfolioBuilder {
         PortfolioBuilder { bbls: HashMap::new() }
     }
 
+    fn get_or_create_assoc(&mut self, bbl: &BBL) -> &mut HashSet<BBL> {
+        self.bbls.entry(*bbl).or_insert_with(|| HashSet::new())
+    }
+
     fn associate_one_way(&mut self, a: &BBL, b: &BBL) {
-        let assoc = self.bbls.entry(*a).or_insert_with(|| HashSet::new());
-        assoc.insert(*b);
+        self.get_or_create_assoc(a).insert(*b);
+    }
+
+    pub fn define(&mut self, bbl: &BBL) {
+        self.get_or_create_assoc(bbl);
     }
 
     pub fn associate(&mut self, a: &BBL, b: &BBL) {

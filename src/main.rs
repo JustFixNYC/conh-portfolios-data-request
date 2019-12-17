@@ -50,6 +50,9 @@ struct OutputRecord {
 
     #[serde(rename = "Top business address (from WoW)")]
     topbusinessaddr: Option<String>,
+
+    #[serde(rename = "Virtual portfolio ID")]
+    virtual_portfolio_id: usize,
 }
 
 #[derive(Debug, Deserialize)]
@@ -172,6 +175,7 @@ fn main() {
 
         agg_results.insert(bbl, get_agg_results(bbl));
 
+        portfolios.define(&bbl);
         for addr in get_addr_results(bbl).addrs.iter() {
             portfolios.associate(&bbl, &addr.as_bbl());
         }
@@ -185,7 +189,7 @@ fn main() {
     for rec in conh_records.iter() {
         let bbl = rec.as_bbl();
         let agg = &agg_results.get(&bbl).unwrap().result[0];
-
+        let virtual_portfolio_id = *pmap.bbl_mapping.get(&bbl).unwrap();
         writer.serialize(OutputRecord {
             building_id: rec.building_id,
             bin: rec.bin,
@@ -198,7 +202,8 @@ fn main() {
             units: agg.units.clone(),
             topowners: agg.topowners.as_ref().map_or(String::from(""), |v| v.join(", ")),
             topcorp: agg.topcorp.clone(),
-            topbusinessaddr: agg.topbusinessaddr.clone()
+            topbusinessaddr: agg.topbusinessaddr.clone(),
+            virtual_portfolio_id,
         }).unwrap();
         writer.flush().unwrap();
     }
