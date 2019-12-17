@@ -188,7 +188,7 @@ fn main() {
     println!("Writing {}...", OUTPUT_FILENAME);
     for rec in conh_records.iter() {
         let bbl = rec.as_bbl();
-        let agg = agg_results.get(&bbl).unwrap();
+        let agg = &agg_results.get(&bbl).unwrap().result[0];
         writer.serialize(OutputRecord {
             building_id: rec.building_id,
             bin: rec.bin,
@@ -197,11 +197,11 @@ fn main() {
             block: rec.block,
             lot: rec.lot,
             bbl: bbl.to_string(),
-            bldgs: agg.result[0].bldgs.clone(),
-            units: agg.result[0].units.clone(),
-            topowners: agg.result[0].topowners.as_ref().map_or(String::from(""), |v| v.join(", ")),
-            topcorp: agg.result[0].topcorp.clone(),
-            topbusinessaddr: agg.result[0].topbusinessaddr.clone()
+            bldgs: agg.bldgs.clone(),
+            units: agg.units.clone(),
+            topowners: agg.topowners.as_ref().map_or(String::from(""), |v| v.join(", ")),
+            topcorp: agg.topcorp.clone(),
+            topbusinessaddr: agg.topbusinessaddr.clone()
         }).unwrap();
         writer.flush().unwrap();
     }
