@@ -6,7 +6,7 @@ mod bbl;
 mod portfolio_map;
 
 use bbl::BBL;
-use portfolio_map::PortfolioMap;
+use portfolio_map::PortfolioBuilder;
 
 const WOW_API_ROOT: &'static str = "https://whoownswhat.justfix.nyc/api";
 
@@ -92,7 +92,7 @@ fn iter_conh_records() -> impl Iterator<Item = CONHRecord> {
 
 fn main() {
     let mut conh_bbls = HashSet::new();
-    let mut portfolios = PortfolioMap::new();
+    let mut portfolios = PortfolioBuilder::new();
     let mut row_count = 0;
     for (i, rec) in iter_conh_records().enumerate() {
         let bbl = rec.as_bbl();
@@ -117,8 +117,8 @@ fn main() {
     }
     println!("Found {} unique CONH BBLs over {} rows.", conh_bbls.len(), row_count);
     println!("Portfolios span a total of {} unique BBLs.", portfolios.num_bbls());
-    let p = portfolios.get_portfolios();
-    println!("Found {} disjoint portfolios.", p.len());
+    let pmap = portfolios.get_portfolios();
+    println!("Found {} disjoint portfolios.", pmap.portfolios.len());
 }
 
 #[test]

@@ -2,12 +2,17 @@ use super::bbl::BBL;
 use std::collections::{HashSet, HashMap};
 
 pub struct PortfolioMap {
+    pub portfolios: Vec<Vec<BBL>>,
+    pub bbl_mapping: HashMap<BBL, usize>,
+}
+
+pub struct PortfolioBuilder {
     bbls: HashMap<BBL, HashSet<BBL>>,
 }
 
-impl PortfolioMap {
-    pub fn new() -> PortfolioMap {
-        PortfolioMap { bbls: HashMap::new() }
+impl PortfolioBuilder {
+    pub fn new() -> PortfolioBuilder {
+        PortfolioBuilder { bbls: HashMap::new() }
     }
 
     fn associate_one_way(&mut self, a: &BBL, b: &BBL) {
@@ -42,22 +47,34 @@ impl PortfolioMap {
         }
     }
 
-    pub fn get_portfolios(&self) -> Vec<HashSet<BBL>> {
-        let mut results: Vec<HashSet<BBL>> = Vec::new();
-        let mut visited_bbls: HashSet<BBL> = HashSet::with_capacity(self.bbls.len());
+    fn get_portfolio(&self, bbl: &BBL) -> Vec<BBL> {
+        let mut portfolio_set = HashSet::new();
+        self.populate_portfolio(*bbl, &mut portfolio_set);
+        let mut portfolio = Vec::with_capacity(portfolio_set.len());
+        portfolio.extend(portfolio_set.iter());
+        portfolio.sort();
+        portfolio
+    }
+
+    pub fn get_portfolios(&self) -> PortfolioMap {
+        let mut portfolios: Vec<Vec<BBL>> = Vec::new();
+        let mut bbl_mapping: HashMap<BBL, usize> = HashMap::with_capacity(self.bbls.len());
         let mut bbls_to_visit: Vec<BBL> = Vec::with_capacity(self.bbls.len());
+        let mut i = 0;
         bbls_to_visit.extend(self.bbls.keys());
         bbls_to_visit.sort();
 
         for bbl in bbls_to_visit.iter() {
-            if !visited_bbls.contains(&bbl) {
-                let mut portfolio = HashSet::new();
-                self.populate_portfolio(*bbl, &mut portfolio);
-                visited_bbls.extend(portfolio.iter());
-                results.push(portfolio);
+            if !bbl_mapping.contains_key(&bbl) {
+                let portfolio = self.get_portfolio(bbl);
+                for visited_bbl in portfolio.iter() {
+                    bbl_mapping.insert(*visited_bbl, i);
+                }
+                portfolios.push(portfolio);
+                i += 1;
             }
         }
 
-        results
+        PortfolioMap { portfolios, bbl_mapping }
     }
 }
