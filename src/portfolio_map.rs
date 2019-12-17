@@ -44,20 +44,17 @@ impl PortfolioMap {
 
     pub fn get_portfolios(&self) -> Vec<HashSet<BBL>> {
         let mut results: Vec<HashSet<BBL>> = Vec::new();
-        let mut unvisited_bbls: HashSet<BBL> = HashSet::new();
-        unvisited_bbls.extend(self.bbls.keys());
+        let mut visited_bbls: HashSet<BBL> = HashSet::with_capacity(self.bbls.len());
+        let mut bbls_to_visit: Vec<BBL> = Vec::with_capacity(self.bbls.len());
+        bbls_to_visit.extend(self.bbls.keys());
+        bbls_to_visit.sort();
 
-        loop {
-            match unvisited_bbls.iter().next() {
-                Some(bbl) => {
-                    let mut portfolio = HashSet::new();
-                    self.populate_portfolio(*bbl, &mut portfolio);
-                    for portfolio_bbl in portfolio.iter() {
-                        unvisited_bbls.remove(portfolio_bbl);
-                    }
-                    results.insert(0, portfolio);
-                },
-                None => break,
+        for bbl in bbls_to_visit.iter() {
+            if !visited_bbls.contains(&bbl) {
+                let mut portfolio = HashSet::new();
+                self.populate_portfolio(*bbl, &mut portfolio);
+                visited_bbls.extend(portfolio.iter());
+                results.push(portfolio);
             }
         }
 
