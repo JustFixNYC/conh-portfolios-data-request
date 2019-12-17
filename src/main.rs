@@ -53,6 +53,9 @@ struct OutputRecord {
 
     #[serde(rename = "Virtual portfolio ID")]
     virtual_portfolio_id: usize,
+
+    #[serde(rename = "Virtual portfolio BBL count")]
+    virtual_portfolio_bbl_count: usize,
 }
 
 #[derive(Debug, Deserialize)]
@@ -190,6 +193,7 @@ fn main() {
         let bbl = rec.as_bbl();
         let agg = &agg_results.get(&bbl).unwrap().result[0];
         let virtual_portfolio_id = *pmap.bbl_mapping.get(&bbl).unwrap();
+        let virtual_portfolio_bbl_count = pmap.portfolios.get(virtual_portfolio_id).unwrap().len();
         writer.serialize(OutputRecord {
             building_id: rec.building_id,
             bin: rec.bin,
@@ -204,6 +208,7 @@ fn main() {
             topcorp: agg.topcorp.clone(),
             topbusinessaddr: agg.topbusinessaddr.clone(),
             virtual_portfolio_id,
+            virtual_portfolio_bbl_count,
         }).unwrap();
         writer.flush().unwrap();
     }
