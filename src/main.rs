@@ -36,8 +36,8 @@ struct OutputRecord {
     #[serde(rename = "BBL")]
     bbl: String,
 
-//    #[serde(rename = "Top owners (from WoW)")]
-//    topowners: Option<Vec<String>>,
+    #[serde(rename = "Top owners (from WoW)")]
+    topowners: String,
 
     #[serde(rename = "Top corporation name (from WoW)")]
     topcorp: Option<String>,
@@ -191,6 +191,7 @@ fn main() {
             block: rec.block,
             lot: rec.lot,
             bbl: bbl.to_string(),
+            topowners: agg.result[0].topowners.as_ref().map_or(String::from(""), |v| v.join(", ")),
             topcorp: agg.result[0].topcorp.clone(),
             topbusinessaddr: agg.result[0].topbusinessaddr.clone()
         }).unwrap();
