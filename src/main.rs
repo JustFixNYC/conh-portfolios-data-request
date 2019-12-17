@@ -157,7 +157,6 @@ fn main() {
     let mut portfolios = PortfolioBuilder::new();
     let conh_records = Vec::from_iter(iter_conh_records());
     let mut agg_results = HashMap::new();
-    let mut addr_results = HashMap::new();
     for rec in conh_records.iter() {
         let bbl = rec.as_bbl();
         if !conh_bbls.insert(bbl) {
@@ -172,13 +171,10 @@ fn main() {
         }
 
         agg_results.insert(bbl, get_agg_results(bbl));
-        let addr = get_addr_results(bbl);
 
-        for addr in addr.addrs.iter() {
+        for addr in get_addr_results(bbl).addrs.iter() {
             portfolios.associate(&bbl, &addr.as_bbl());
         }
-
-        addr_results.insert(bbl, addr);
     }
     println!("Found {} unique CONH BBLs over {} rows.", conh_bbls.len(), conh_records.len());
     println!("Portfolios span a total of {} unique BBLs.", portfolios.num_bbls());
@@ -189,6 +185,7 @@ fn main() {
     for rec in conh_records.iter() {
         let bbl = rec.as_bbl();
         let agg = &agg_results.get(&bbl).unwrap().result[0];
+
         writer.serialize(OutputRecord {
             building_id: rec.building_id,
             bin: rec.bin,
